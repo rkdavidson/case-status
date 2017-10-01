@@ -1,0 +1,23 @@
+{
+  "name": "case-status",
+  "version": "1.0.0",
+  "description": "Automatically check and display case statuses from USCIS website",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/rkdavidson/case-status.git"
+  },
+  "author": "Ryan K. Davidson",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/rkdavidson/case-status/issues"
+  },
+  "homepage": "https://github.com/rkdavidson/case-status#readme",
+  "dependencies": {
+    "hapi": "^16.6.2"
+  }
+}
