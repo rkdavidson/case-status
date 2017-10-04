@@ -14,7 +14,7 @@ server.route({
   method: "GET",
   path: "/",
   handler: function(request, reply) {
-    return reply("hello world");
+    reply.file("./public/index.html");
   }
 });
 
@@ -23,5 +23,6 @@ server.start(err => {
   if (err) {
     throw err;
   }
+
   console.log("Server running at:", server.info.uri);
 });
