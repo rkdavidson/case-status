@@ -21,6 +21,7 @@
   "dependencies": {
     "cheerio": "^1.0.0-rc.2",
     "express": "^4.16.2",
+    "jsonfile": "^4.0.0",
     "path": "^0.12.7",
     "python-shell": "^0.4.0",
     "request": "^2.83.0",
