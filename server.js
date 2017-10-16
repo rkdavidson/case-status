@@ -56,14 +56,46 @@ app.get('/python', async function (request, response) {
   response.send(pythonData);
 });
 
-app.get('/google', async function(request, response) {
-  const response = await requestPromise.get('https://egov.uscis.gov/casestatus/mycasestatus.do?appReceiptNum=MSC1791555062');
-  const $ = cheerio.load(googleResponse);
-  const getFormElement = (selector) => $(`form[name="caseStatusForm"] .appointment-sec .rows ${selector}`)
-  const headline = getFormElement('h1');
-  const summary = getFormElement('p');
+async function getCaseStatus(caseId) {
+  return new Promise(async function(resolve, reject) {
+    if (!caseId) {
+      reject('No case id provided');  
+    }
 
-  response.send('Worked? h1: ' + h1);
+    const html = await requestPromise.get(`https://egov.uscis.gov/casestatus/mycasestatus.do?appReceiptNum=${caseId}`);
+    const $ = cheerio.load(html);
+    const getFormElementText = (selector) => $(`form[name="caseStatusForm"] .appointment-sec .rows ${selector}`).text();
+    const headline = getFormElementText('h1');
+    const summary = getFormElementText('p');
+    console.log('headline: ', headline);
+    console.log('summary: ', summary);
+  
+    if (headline && summary) {
+      resolve({
+        caseId,
+        headline,
+        summary
+      });
+    }
+    
+    reject('Unknown error getting headline and summary');
+  });
+}
+
+async function getCaseStatuses(caseIds) {
+  return Promise.all( caseIds.map(getCaseStatus) );
+}
+
+app.get('/case', async function(request, response) {
+  const caseStatus = await getCaseStatus('MSC1791555062');
+
+  response.send('Worked? caseStatus: ' + JSON.stringify(caseStatus, null, 2));
+});
+
+app.get('/cases', async function(request, response) {
+  const caseStatuses = await getCaseStatuses(['MSC1791555061', 'MSC1791555062', 'MSC1791555063']);
+
+  response.send('Worked? caseStatuses: ' + JSON.stringify(caseStatuses, null, 2));
 });
 
 
