@@ -5,6 +5,7 @@
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
+    "connect": "./scripts/connect.sh",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "repository": {
@@ -18,6 +19,11 @@
   },
   "homepage": "https://github.com/rkdavidson/case-status#readme",
   "dependencies": {
-    "hapi": "^16.6.2"
+    "cheerio": "^1.0.0-rc.2",
+    "express": "^4.16.2",
+    "path": "^0.12.7",
+    "python-shell": "^0.4.0",
+    "request": "^2.83.0",
+    "request-promise-native": "^1.0.5"
   }
 }

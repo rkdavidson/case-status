@@ -90,4 +90,5 @@ def get_string_from_list(list):
 case_statuses = get_all_case_statuses(cases)
 display_case_statuses(case_statuses)
 save_case_statuses_json(case_statuses)
+print('\n' + Fore.YELLOW + Style.BRIGHT + 'JSON data...' + Fore.RESET + Style.NORMAL)
 print(json.dumps(case_statuses))
