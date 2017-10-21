@@ -1,8 +1,14 @@
+// NPM Dependencies
 const express = require('express');
+const fs = require('fs');
+const fse = require('fs-extra');
 const path = require('path');
-const PythonShell = require('python-shell');
+const uuid = require('uuid');
 const requestPromise = require('request-promise-native');
 const cheerio = require('cheerio');
+
+// Server Files
+const dateUtils = require('./server/dateUtils');
 
 // ----------------------------------------
 
@@ -11,56 +17,83 @@ const port = 8080;
 
 // Define important file paths
 const paths = {
-  public: path.join(__dirname, 'public')
+  public: path.join(__dirname, 'public'),
+  cache: path.join(__dirname, 'cache')
 };
 
 // Setup static public path
 app.use( express.static(paths.public) );
 
 
-// :: ROUTING
+// :: FUNCTIONS
 // ----------------------------------------
 
-app.get('/', function (request, response) {
-  response.send('Hello World!');
-});
+const getCachePath = (...pathParts) => path.join(paths.cache, ...pathParts);
+const curryGetCachedStatusPath = (caseId) => (...pathParts) => getCachePath(caseId, ...pathParts);
 
-async function getPythonData() {
-  return new Promise((resolve, reject) => {
-    const python = new PythonShell('get-case-statuses.py');
-    let result;
-  
-    python.on('message', function handleMessage(message) {
-      console.log('Message received! ', message);
-      result = message;
-    });
-  
-    python.end(function handleEnd(err) {
-      if (err) {
-        console.error('Error from python! ', err);
-        reject(err);
-      }
-      
-      console.log('Success! result: ', result);
-      resolve(result);
-    });
-  });
+function generateCachedStatusFileName() {
+  const timestamp = dateUtils.getFilenameTimestamp();
+  const hash = uuid().slice(-7);
+
+  return `status_${timestamp}_${hash}.json`;
 }
 
-app.get('/python', async function (request, response) {
-  const pythonData = await getPythonData().catch(error => {
-    console.log('Crap, we got an error from getPythonData: ', error);
-    response.status('403').send('Sorry, could not get python data because ' + error);
-  });
 
-  response.send(pythonData);
-});
+async function cacheCaseStatusData(caseId, content) {
+  const getCachedStatusPath = curryGetCachedStatusPath(caseId);
+
+  // :: Make sure a directory exists in the cache for this case
+  await fse.ensureDir( getCachedStatusPath() )
+    // .then(() => {
+    //   console.log('created dir: ', getCachedStatusPath())
+    // })
+    .catch(err => {
+      console.error('Error making directory: ', err);
+    });
+
+  // :: Store the status data
+  const statusFileName = generateCachedStatusFileName();
+  const statusFilePath = getCachedStatusPath(statusFileName);
+  const latestSymlink = getCachedStatusPath('_latest.json');
+
+  await fse.writeJson(statusFilePath, content)
+    // .then(() => {
+    //   console.log('wrote json file: ', statusFilePath)
+    // })
+    .catch(err => {
+      console.error('Error during writeJson() with statusFilePath: ' + statusFilePath, err);
+    });
+
+  await updateSymlink(statusFilePath, latestSymlink)
+    .then(() => { console.log('Done updating symlink!') })
+    .catch(err => console.error(err));
+}
+
+async function updateSymlink(newSrcPath, dstSymlink) {
+  const dstSymlinkTemporary = `${dstSymlink}_TEMPORARY`;
+  await fse.ensureSymlink(newSrcPath, dstSymlinkTemporary).then(() => { console.log('success ensuring symlink') });
+  return fse.move(dstSymlinkTemporary, dstSymlink, { overwrite: true }).then(() => { console.log('success moving symlink') });
+}
+
+console.log('Creating latest cached file...');
+cacheCaseStatusData('rkd-test', ["StUFF", { name: "rkd", id: 0 }]);
+
+
+// >> case status number
+// Create folder for case status number if one doesnt exist
+// Create new case status json file
+// Update symlink to point to that file
 
 async function getCaseStatus(caseId) {
   return new Promise(async function(resolve, reject) {
     if (!caseId) {
-      reject('No case id provided');  
+      reject('No case id provided');
     }
+
+    // Check for cached file
+    // await jsonfile.readFile(getCachePath(caseId), function(err, obj) {
+    //   console.dir(obj)
+    // })
 
     const html = await requestPromise.get(`https://egov.uscis.gov/casestatus/mycasestatus.do?appReceiptNum=${caseId}`);
     const $ = cheerio.load(html);
@@ -69,7 +102,7 @@ async function getCaseStatus(caseId) {
     const summary = getFormElementText('p');
     console.log('headline: ', headline);
     console.log('summary: ', summary);
-  
+
     if (headline && summary) {
       resolve({
         caseId,
@@ -77,7 +110,7 @@ async function getCaseStatus(caseId) {
         summary
       });
     }
-    
+
     reject('Unknown error getting headline and summary');
   });
 }
@@ -85,6 +118,9 @@ async function getCaseStatus(caseId) {
 async function getCaseStatuses(caseIds) {
   return Promise.all( caseIds.map(getCaseStatus) );
 }
+
+// :: ROUTING
+// ----------------------------------------
 
 app.get('/case', async function(request, response) {
   const caseStatus = await getCaseStatus('MSC1791555062');
