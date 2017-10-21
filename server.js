@@ -8,79 +8,22 @@ const requestPromise = require('request-promise-native');
 const cheerio = require('cheerio');
 
 // Server Files
-const dateUtils = require('./server/dateUtils');
+const config = require('./server/config');
+const cacheUtils = require('./server/cacheUtils');
 
 // ----------------------------------------
 
 const app = express();
 const port = 8080;
 
-// Define important file paths
-const paths = {
-  public: path.join(__dirname, 'public'),
-  cache: path.join(__dirname, 'cache')
-};
-
 // Setup static public path
-app.use( express.static(paths.public) );
+app.use( express.static(config.paths.public) );
 
 
 // :: FUNCTIONS
 // ----------------------------------------
 
-const getCachePath = (...pathParts) => path.join(paths.cache, ...pathParts);
-const curryGetCachedStatusPath = (caseId) => (...pathParts) => getCachePath(caseId, ...pathParts);
-
-function generateCachedStatusFileName() {
-  const timestamp = dateUtils.getFilenameTimestamp();
-  const hash = uuid().slice(-7);
-
-  return `status_${timestamp}_${hash}.json`;
-}
-
-
-async function cacheCaseStatusData(caseId, content) {
-  const getCachedStatusPath = curryGetCachedStatusPath(caseId);
-  const statusFilePath = getCachedStatusPath( generateCachedStatusFileName() );
-  const latestSymlink = getCachedStatusPath('_latest.json');
-
-  try {
-    // :: Make sure a directory exists in the cache for this case
-    await fse.ensureDir( getCachedStatusPath() );
-    console.log('✅  Cache directory exists for this case');
-
-    // :: Store the status data
-    await fse.writeJson(statusFilePath, content)
-    console.log('✅  Wrote status json');
-
-    // :: Update latest symlink
-    await updateSymlink(statusFilePath, latestSymlink);
-    console.log('✅  Success updating latest status symlink');
-  } catch (err) {
-    console.error('❌  Error: ', err);
-  }
-}
-
-async function updateSymlink(srcPath, symlinkPath) {
-  console.log(`↘️  updateSymlink(${srcPath}, ${symlinkPath})...`);
-  const tmpSymlinkPath = `${symlinkPath}.tmp`;
-
-  await fse.ensureSymlink(srcPath, tmpSymlinkPath);
-  console.log('✅  Success creating temporary symlink');
-
-  await fse.move(tmpSymlinkPath, symlinkPath, { overwrite: true });
-  console.log('✅  Success moving symlink');
-
-  console.log('↙️ updateSymlink() complete');
-}
-
-console.log('Creating latest cached file...');
-cacheCaseStatusData('rkd-test', ["StUFF", { name: "rkd", id: 0 }]);
-
-// >> case status number
-// Create folder for case status number if one doesnt exist
-// Create new case status json file
-// Update symlink to point to that file
+cacheUtils.cacheCaseStatus('saturday', { 'data': uuid() });
 
 async function getCaseStatus(caseId) {
   return new Promise(async function(resolve, reject) {
