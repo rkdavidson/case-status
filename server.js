@@ -41,43 +41,41 @@ function generateCachedStatusFileName() {
 
 async function cacheCaseStatusData(caseId, content) {
   const getCachedStatusPath = curryGetCachedStatusPath(caseId);
-
-  // :: Make sure a directory exists in the cache for this case
-  await fse.ensureDir( getCachedStatusPath() )
-    // .then(() => {
-    //   console.log('created dir: ', getCachedStatusPath())
-    // })
-    .catch(err => {
-      console.error('Error making directory: ', err);
-    });
-
-  // :: Store the status data
-  const statusFileName = generateCachedStatusFileName();
-  const statusFilePath = getCachedStatusPath(statusFileName);
+  const statusFilePath = getCachedStatusPath( generateCachedStatusFileName() );
   const latestSymlink = getCachedStatusPath('_latest.json');
 
-  await fse.writeJson(statusFilePath, content)
-    // .then(() => {
-    //   console.log('wrote json file: ', statusFilePath)
-    // })
-    .catch(err => {
-      console.error('Error during writeJson() with statusFilePath: ' + statusFilePath, err);
-    });
+  try {
+    // :: Make sure a directory exists in the cache for this case
+    await fse.ensureDir( getCachedStatusPath() );
+    console.log('✅  Cache directory exists for this case');
 
-  await updateSymlink(statusFilePath, latestSymlink)
-    .then(() => { console.log('Done updating symlink!') })
-    .catch(err => console.error(err));
+    // :: Store the status data
+    await fse.writeJson(statusFilePath, content)
+    console.log('✅  Wrote status json');
+
+    // :: Update latest symlink
+    await updateSymlink(statusFilePath, latestSymlink);
+    console.log('✅  Success updating latest status symlink');
+  } catch (err) {
+    console.error('❌  Error: ', err);
+  }
 }
 
-async function updateSymlink(newSrcPath, dstSymlink) {
-  const dstSymlinkTemporary = `${dstSymlink}_TEMPORARY`;
-  await fse.ensureSymlink(newSrcPath, dstSymlinkTemporary).then(() => { console.log('success ensuring symlink') });
-  return fse.move(dstSymlinkTemporary, dstSymlink, { overwrite: true }).then(() => { console.log('success moving symlink') });
+async function updateSymlink(srcPath, symlinkPath) {
+  console.log(`↘️  updateSymlink(${srcPath}, ${symlinkPath})...`);
+  const tmpSymlinkPath = `${symlinkPath}.tmp`;
+
+  await fse.ensureSymlink(srcPath, tmpSymlinkPath);
+  console.log('✅  Success creating temporary symlink');
+
+  await fse.move(tmpSymlinkPath, symlinkPath, { overwrite: true });
+  console.log('✅  Success moving symlink');
+
+  console.log('↙️ updateSymlink() complete');
 }
 
 console.log('Creating latest cached file...');
 cacheCaseStatusData('rkd-test', ["StUFF", { name: "rkd", id: 0 }]);
-
 
 // >> case status number
 // Create folder for case status number if one doesnt exist
