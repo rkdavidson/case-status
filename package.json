@@ -4,7 +4,9 @@
   "description": "Automatically check and display case statuses from USCIS website",
   "main": "server.js",
   "scripts": {
-    "start": "node server.js",
+    "start": "nodemon -L server.js",
+    "docker:build": "docker build -t rkdavidson/case-status/server .",
+    "docker:run": "docker run -p 8080:8080 -ti rkdavidson/case-status/server",
     "connect": "./scripts/connect.sh",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
@@ -23,10 +25,15 @@
     "express": "^4.16.2",
     "fs-extra": "^4.0.2",
     "jsonfile": "^4.0.0",
+    "mongodb": "^2.2.9",
+    "mongoose": "^4.12.3",
     "path": "^0.12.7",
     "python-shell": "^0.4.0",
     "request": "^2.83.0",
     "request-promise-native": "^1.0.5",
     "uuid": "^3.1.0"
+  },
+  "devDependencies": {
+    "nodemon": "^1.12.1"
   }
 }

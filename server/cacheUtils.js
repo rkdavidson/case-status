@@ -1,5 +1,6 @@
 const path = require('path');
 const fse = require('fs-extra');
+const uuid = require('uuid');
 
 const dateUtils = require('./dateUtils');
 const { paths } = require('./config');
@@ -13,7 +14,7 @@ const curryGetCachedStatusPath = (caseId) => (...pathParts) => getCachePath(case
 // :: Public
 // ----------------------------------------
 
-async function cacheCaseStatusData(caseId, content, setAsLatest = true) {
+async function cacheCaseStatus(caseId, content, setAsLatest = true) {
   const getCachedStatusPath = curryGetCachedStatusPath(caseId);
   const statusFilePath = getCachedStatusPath( generateCachedStatusFileName() );
   const latestSymlink = getCachedStatusPath('_latest.json');
@@ -61,5 +62,5 @@ async function updateSymlink(srcPath, targetPath) {
 // ----------------------------------------
 
 module.exports = {
-  cacheCaseStatusData
+  cacheCaseStatus
 };

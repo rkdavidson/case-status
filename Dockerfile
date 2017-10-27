@@ -1,18 +1,12 @@
-FROM node:8.7.0
+FROM mhart/alpine-node:latest
 
-# Create app directory
-WORKDIR /usr/src/app
+ADD package.json /tmp/package.json
+RUN cd /tmp && npm install
+RUN mkdir -p /opt/app && cp -a /tmp/node_modules /opt/app/
 
-# Install app dependencies
-COPY package.json .
+WORKDIR /opt/app
+ADD . /opt/app
 
-# For npm@5 or later, copy package-lock.json as well
-COPY package.json package-lock.json ./
+EXPOSE 8080
 
-# RUN npm config ls -l
-RUN npm install --verbose
-
-# Bundle app source
-COPY . .
-
-CMD [ "npm", "start" ]
+CMD ["npm", "start"]
